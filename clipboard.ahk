@@ -31,10 +31,9 @@ class ClipboardManager {
             this.menuCreated := false
         }
         for i, clip in this.clipHistory {
-            if (StrLen(clip) > this.truncateSize) {
-                clipSummary := SubStr(clip, 1, this.truncateSize - 3) "..."
-            } else {
-                clipSummary := clip
+            clipSummary := clip
+            if (StrLen(clipSummary) > this.truncateSize) {
+                clipSummary := SubStr(clipSummary, 1, this.truncateSize - 3) "..."
             }
             Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
         }

@@ -14,6 +14,7 @@ class ClipboardManager {
         this.clipHistory := []
         this.menuCreated := false
         this.truncateSize := 25
+        this.maxHistory := 5
     }
 
     SaveClip() {
@@ -78,7 +79,7 @@ class ClipboardManager {
     }
 
     _processIncomingClipboardData(command) {
-        if (this.clipHistory.Count > 5) {
+        if (this.clipHistory.Count() >= this.maxHistory) {
             this.clipHistory.Remove(this.clipHistory.MinIndex())
         }
         

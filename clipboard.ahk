@@ -4,7 +4,6 @@
 
 SetWorkingDir, %A_ScriptDir%
 clippy := new ClipboardManager()
-Menu, ClipHistoryMenu, Add
 return
 
 ;todo: optionally save clip history to file for persited history 
@@ -26,56 +25,26 @@ class ClipboardManager {
     }
 
     ShowClipHistory() { 
-        if (this.menuCreated) {
-            Menu, ClipHistoryMenu, DeleteAll
-            this.menuCreated := false
-        }
-        for i, clip in this.clipHistory {
-            clipSummary := clip
-            clipSummary := RegexReplace(clipSummary, "^\s+")
-            clipSummary := RegexReplace(clipSummary, "\s+$")
-            if (StrLen(clipSummary) > this.truncateSize) {
-                clipSummary := SubStr(clipSummary, 1, this.truncateSize - 3) "..."
-            }
-            Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
-        }
-        
-        this.menuCreated := true
+        this._createCleanMenu()
+        this._buildMenuItems()
         Menu, ClipHistoryMenu, Show
     }
 
     Paste() {
-        keyState := GetKeyState("LControl", P)
-        now := A_TickCount
-        while (keyState == 1) {
-            if (A_TickCount - now > 500)
-            {
-                this.ShowClipHistory()
-                return
-            }
-            keyState := GetKeyState("LControl", P)
+        menuPrompted := this._checkForMenuRequest()
+        if (!menuPrompted) {
+            this.PasteClipboard()
         }
-        this.PasteLastClip()
     }
 
-    PasteLastClip() {
-        this.PasteClip(this.clipHistory.MaxIndex())
+    PasteClipboard() {
+        Send, ^v
     }
 
-    PasteClip(index) {
-        if (!DllCall("IsClipboardFormatAvailable", "uint", 1))
-        {
-            Send, ^v
-            return
-        }
-
-        this.PasteClipText(index)
-    }
-
-    PasteClipText(index) {
+    PasteClipFromHistory(index) {
         clipSave := ClipboardAll
         Clipboard := this.clipHistory[index]
-        Send, ^v
+        this.PasteClipboard()
         Clipboard := clipSave
     }
 
@@ -89,10 +58,50 @@ class ClipboardManager {
         ClipWait
         this.clipHistory.Push(Clipboard)
     }
+
+    _createCleanMenu() {
+        if (this.menuCreated) {
+            Menu, ClipHistoryMenu, DeleteAll
+            this.menuCreated := false
+        }
+        Menu, ClipHistoryMenu, Add
+        this.menuCreated := true
+    }
+
+    _getClipSummary(clip) {
+        clipSummary := clip
+        clipSummary := RegexReplace(clipSummary, "^\s+")
+        clipSummary := RegexReplace(clipSummary, "\s+$")
+        if (StrLen(clipSummary) > this.truncateSize) {
+            clipSummary := SubStr(clipSummary, 1, this.truncateSize - 3) "..."
+        }
+        return clipSummary
+    }
+
+    _buildMenuItems() {
+        for i, clip in this.clipHistory {
+            clipSummary := this._getClipSummary(clip)
+            Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
+        }
+    }
+
+    _checkForMenuRequest() {
+        keyState := GetKeyState("LControl", P)
+        now := A_TickCount
+        while (keyState == 1) {
+            if (A_TickCount - now > 500)
+            {
+                this.ShowClipHistory()
+                return true
+            }
+            keyState := GetKeyState("LControl", P)
+        }
+        return false
+    }
 }
 
 MenuHandler:
-    clippy.PasteClipText(A_ThisMenuItemPos)
+    clippy.PasteClipFromHistory(A_ThisMenuItemPos)
 return
 
 $^x::

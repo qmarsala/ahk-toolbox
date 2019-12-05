@@ -4,6 +4,7 @@
 
 SetWorkingDir, %A_ScriptDir%
 clippy := new ClipboardManager()
+Menu, ClipHistoryMenu, Add
 return
 
 ;todo: optionally save clip history to file for persited history 
@@ -39,6 +40,7 @@ class ClipboardManager {
 
     PasteClipboard() {
         Send, ^v
+        this.menuCreated := true
     }
 
     PasteClipFromHistory(index) {
@@ -64,8 +66,6 @@ class ClipboardManager {
             Menu, ClipHistoryMenu, DeleteAll
             this.menuCreated := false
         }
-        Menu, ClipHistoryMenu, Add
-        this.menuCreated := true
     }
 
     _getClipSummary(clip) {
@@ -83,6 +83,7 @@ class ClipboardManager {
             clipSummary := this._getClipSummary(clip)
             Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
         }
+        this.menuCreated := true
     }
 
     _checkForMenuRequest() {

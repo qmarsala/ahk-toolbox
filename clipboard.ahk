@@ -32,6 +32,8 @@ class ClipboardManager {
         }
         for i, clip in this.clipHistory {
             clipSummary := clip
+            clipSummary := RegexReplace(clipSummary, "^\s+")
+            clipSummary := RegexReplace(clipSummary, "\s+$")
             if (StrLen(clipSummary) > this.truncateSize) {
                 clipSummary := SubStr(clipSummary, 1, this.truncateSize - 3) "..."
             }

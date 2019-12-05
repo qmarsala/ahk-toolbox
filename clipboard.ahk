@@ -40,7 +40,6 @@ class ClipboardManager {
 
     PasteClipboard() {
         Send, ^v
-        this.menuCreated := true
     }
 
     PasteClipFromHistory(index) {

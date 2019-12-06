@@ -7,14 +7,14 @@ clippy := new ClipboardManager()
 Menu, ClipHistoryMenu, Add
 return
 
-;todo: optionally save clip history to file for persited history 
+;todo: read existing clip history from working dir 
 
 class ClipboardManager {
     __New() {
-        this.clipHistory := []
         this.menuCreated := false
         this.truncateSize := 25
-        this.maxHistory := 5
+        this.nextIndex := 1
+        this.totalClips := 0
     }
 
     SaveClip() {
@@ -44,20 +44,27 @@ class ClipboardManager {
 
     PasteClipFromHistory(index) {
         clipSave := ClipboardAll
-        Clipboard := this.clipHistory[index]
+        clipPath := A_WorkingDir "\" index ".clip"
+        FileRead, Clipboard, *c %clipPath%
         this.PasteClipboard()
         Clipboard := clipSave
     }
 
     _processIncomingClipboardData(command) {
-        if (this.clipHistory.Count() >= this.maxHistory) {
-            this.clipHistory.Remove(this.clipHistory.MinIndex())
+        if (this.nextIndex > 5) {
+            this.nextIndex := 1
         }
         
         Clipboard := ""
         Send, %command%
         ClipWait
-        this.clipHistory.Push(Clipboard)
+        clipPath := A_WorkingDir "\" this.nextIndex ".clip"
+        FileAppend, %ClipboardAll%, %clipPath%
+        this.nextIndex := this.nextIndex + 1
+        if (this.totalClips < 5)
+        {
+            this.totalClips := this.totalClips + 1
+        }
     }
 
     _createCleanMenu() {
@@ -67,22 +74,33 @@ class ClipboardManager {
         }
     }
 
-    _getClipSummary(clip) {
-        clipSummary := clip
+    _buildMenuItems() {
+        i := 1
+        while (i <= this.totalClips) {
+            clipSummary := this._getClipSummary(i)
+            Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
+            i := i + 1
+        }
+        this.menuCreated := true
+    }
+
+    _getClipSummary(index) {
+        clipSave := ClipboardAll
+        clipPath := A_WorkingDir "\" index ".clip"
+        FileRead, Clipboard, *c %clipPath%
+        if (!(DllCall("IsClipboardFormatAvailable", "uint", 1) && DllCall("IsClipboardFormatAvailable", "uint", 13)))
+        {
+            return "binary data (" index ") ..."
+        }
+
+        clipSummary := Clipboard
         clipSummary := RegexReplace(clipSummary, "^\s+")
         clipSummary := RegexReplace(clipSummary, "\s+$")
         if (StrLen(clipSummary) > this.truncateSize) {
             clipSummary := SubStr(clipSummary, 1, this.truncateSize - 3) "..."
         }
+        Clipboard := clipSave
         return clipSummary
-    }
-
-    _buildMenuItems() {
-        for i, clip in this.clipHistory {
-            clipSummary := this._getClipSummary(clip)
-            Menu, ClipHistoryMenu, Add, %clipSummary%, MenuHandler
-        }
-        this.menuCreated := true
     }
 
     _checkForMenuRequest() {
